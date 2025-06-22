@@ -6,16 +6,32 @@ import (
 	"os"
 )
 
-var cliCommands = map[string]cliCommand{
+var cliCommands = map[string]CLICommand{
 	"exit": {
 		name:        "exit",
 		description: "Exit the Pokedex",
 		callback:    commandExit,
 	},
+	"map": {
+		name:        "map",
+		description: "Get next 20 locations of Pokemon world",
+		callback:    commandMap,
+	},
+	"bmap": {
+		name:        "bmap",
+		description: "Get previous 20 locations of Pokemon world",
+		callback:    commandBMap,
+	},
+}
+
+var locationConfig = Config{
+	next:     "https://pokeapi.co/api/v2/location-area/",
+	previous: "",
 }
 
 func main() {
-	cliCommands["help"] = cliCommand{
+	// add help here to avoid error of cyclycal use (commandHelp func <> cliCommand struct)
+	cliCommands["help"] = CLICommand{
 		name:        "help",
 		description: "Displays a help message",
 		callback:    commandHelp,
@@ -36,7 +52,7 @@ func main() {
 		}
 
 		if cliCommand, exists := cliCommands[command]; exists {
-			err := cliCommand.callback()
+			err := cliCommand.callback(&locationConfig)
 			if err != nil {
 				fmt.Printf("ERROR: %v", err)
 			}
