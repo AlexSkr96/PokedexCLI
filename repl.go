@@ -3,9 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/AlexSkr96/PokedexCLI/internal/pokecache"
 )
 
 type CLICommand struct {
@@ -18,6 +22,8 @@ type Config struct {
 	previous string
 	next     string
 }
+
+var cache = pokecache.NewCache(5 * time.Second)
 
 func cleanInput(text string) []string {
 	output := strings.ToLower(text)
@@ -40,16 +46,26 @@ func commandHelp(config *Config) error {
 }
 
 func getFromAPI(url string) (map[string]any, error) {
-	res, err := http.Get(url)
-	if err != nil {
-		return map[string]any{}, fmt.Errorf("error while getting '%v': %v", url, err)
+	jsonData, exists := cache.Get(url)
+	if !exists {
+		res, err := http.Get(url)
+		if err != nil {
+			return map[string]any{}, fmt.Errorf("error getting \"%v\": %v", url, err)
+		}
+		defer res.Body.Close()
+
+		jsonData, err = io.ReadAll(res.Body)
+		if err != nil {
+			return map[string]any{}, fmt.Errorf("error reading response body from \"%v\": %v", url, err)
+		}
+
+		cache.Add(url, jsonData)
 	}
-	defer res.Body.Close()
 
 	var data map[string]any
-	err = json.NewDecoder(res.Body).Decode(&data)
+	err := json.Unmarshal(jsonData, &data)
 	if err != nil {
-		return map[string]any{}, fmt.Errorf("error while decoding JSON response: %v", err)
+		return map[string]any{}, fmt.Errorf("error unmarshalling data from \"%v\": %v", url, err)
 	}
 
 	return data, nil
