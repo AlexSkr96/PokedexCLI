@@ -1,6 +1,5 @@
 package main
 
-// test commit
 import (
 	"bufio"
 	"fmt"
@@ -9,33 +8,38 @@ import (
 
 var cliCommands = map[string]CLICommand{
 	"exit": {
-		name:        "exit",
-		description: "Exit the Pokedex",
-		callback:    commandExit,
+		Name:        "exit",
+		Description: "Exit the Pokedex",
+		Callback:    commandExit,
 	},
 	"map": {
-		name:        "map",
-		description: "Get next 20 locations of Pokemon world",
-		callback:    commandMap,
+		Name:        "map",
+		Description: "Get next 20 locations of Pokemon world",
+		Callback:    commandMap,
 	},
 	"bmap": {
-		name:        "bmap",
-		description: "Get previous 20 locations of Pokemon world",
-		callback:    commandBMap,
+		Name:        "bmap",
+		Description: "Get previous 20 locations of Pokemon world",
+		Callback:    commandBMap,
+	},
+	"explore": {
+		Name:        "explore",
+		Description: "See a list of pokemon in selected area",
+		Callback:    commandExplore,
 	},
 }
 
 var locationConfig = Config{
-	next:     "https://pokeapi.co/api/v2/location-area/",
-	previous: "",
+	Next:     "https://pokeapi.co/api/v2/location-area/",
+	Previous: "",
 }
 
 func main() {
 	// add help here to avoid error of cyclycal use (commandHelp func <> cliCommand struct)
 	cliCommands["help"] = CLICommand{
-		name:        "help",
-		description: "Displays a help message",
-		callback:    commandHelp,
+		Name:        "help",
+		Description: "Displays a help message",
+		Callback:    commandHelp,
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -53,7 +57,7 @@ func main() {
 		}
 
 		if cliCommand, exists := cliCommands[command]; exists {
-			err := cliCommand.callback(&locationConfig)
+			err := cliCommand.Callback(&locationConfig, cleanedInput[1:])
 			if err != nil {
 				fmt.Printf("ERROR: %v", err)
 			}

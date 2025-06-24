@@ -13,14 +13,14 @@ import (
 )
 
 type CLICommand struct {
-	name        string
-	description string
-	callback    func(*Config) error
+	Name        string
+	Description string
+	Callback    func(*Config, []string) error
 }
 
 type Config struct {
-	previous string
-	next     string
+	Previous string
+	Next     string
 }
 
 var cache = pokecache.NewCache(5 * time.Second)
@@ -31,16 +31,16 @@ func cleanInput(text string) []string {
 	return words
 }
 
-func commandExit(config *Config) error {
+func commandExit(config *Config, args []string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp(config *Config) error {
+func commandHelp(config *Config, args []string) error {
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n\n")
 	for _, cliCommand := range cliCommands {
-		fmt.Printf("%v: %v\n", cliCommand.name, cliCommand.description)
+		fmt.Printf("%v: %v\n", cliCommand.Name, cliCommand.Description)
 	}
 	return nil
 }
@@ -71,27 +71,39 @@ func getFromAPI(url string) (map[string]any, error) {
 	return data, nil
 }
 
-func getMap(config *Config, dir bool) (err error) {
+func getMap(config *Config, dir bool) error {
 	var data map[string]any
+	var newNext string
+	var newPrevious string
+	var err error
+
 	if dir {
-		data, err = getFromAPI(config.next)
+		newPrevious = config.Next
+		data, err = getFromAPI(newPrevious)
 	} else {
-		data, err = getFromAPI(config.previous)
+		newNext = config.Previous
+		data, err = getFromAPI(newNext)
 	}
 	if err != nil {
 		return err
 	}
 
-	if data["next"] != nil {
-		config.next = data["next"].(string)
+	if dir {
+		if data["next"] != nil {
+			newNext = data["next"].(string)
+		} else {
+			newNext = ""
+		}
 	} else {
-		config.next = ""
+		if data["previous"] != nil {
+			newPrevious = data["previous"].(string)
+		} else {
+			newPrevious = ""
+		}
 	}
-	if data["previous"] != nil {
-		config.previous = data["previous"].(string)
-	} else {
-		config.previous = ""
-	}
+
+	config.Next = newNext
+	config.Previous = newPrevious
 
 	for _, location := range data["results"].([]any) {
 		convertedLocation := location.(map[string]any)
@@ -101,10 +113,36 @@ func getMap(config *Config, dir bool) (err error) {
 	return nil
 }
 
-func commandMap(config *Config) error {
+func commandMap(config *Config, args []string) error {
+	if config.Next == "" {
+		fmt.Print("you're on the last page")
+		return nil
+	}
 	return getMap(config, true)
 }
 
-func commandBMap(config *Config) error {
+func commandBMap(config *Config, args []string) error {
+	if config.Previous == "" {
+		fmt.Print("you're on the first page")
+		return nil
+	}
 	return getMap(config, false)
+}
+
+func commandExplore(config *Config, args []string) error {
+	fmt.Printf("Exploring %v...\n", args[0])
+	fullUrl := fmt.Sprintf("https://pokeapi.co/api/v2/location-area/%v/", args[0])
+	data, err := getFromAPI(fullUrl)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Found Pokemon:\n")
+	for _, encounter := range data["pokemon_encounters"].([]any) {
+		pokemon := encounter.(map[string]any)["pokemon"]
+		name := pokemon.(map[string]any)["name"]
+		fmt.Printf("  -%v\n", name)
+	}
+
+	return nil
 }
