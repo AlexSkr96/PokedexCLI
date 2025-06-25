@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"strings"
@@ -23,7 +24,20 @@ type Config struct {
 	Next     string
 }
 
+type Pokemon struct {
+	Height         int
+	Weight         int
+	HP             int
+	Attack         int
+	Defense        int
+	SpecialAttack  int
+	SpecialDefence int
+	Speed          int
+	Types          []string
+}
+
 var cache = pokecache.NewCache(5 * time.Second)
+var pokedex = map[string]Pokemon{}
 
 func cleanInput(text string) []string {
 	output := strings.ToLower(text)
@@ -107,7 +121,7 @@ func getMap(config *Config, dir bool) error {
 
 	for _, location := range data["results"].([]any) {
 		convertedLocation := location.(map[string]any)
-		fmt.Printf("%v\n", convertedLocation["name"])
+		fmt.Printf("  -%v\n", convertedLocation["name"])
 	}
 
 	return nil
@@ -144,5 +158,50 @@ func commandExplore(config *Config, args []string) error {
 		fmt.Printf("  -%v\n", name)
 	}
 
+	return nil
+}
+
+func commandCatch(config *Config, args []string) error {
+	fmt.Printf("Throwing a Pokeball at %v...\n", args[0])
+	fullUrl := fmt.Sprintf("https://pokeapi.co/api/v2/pokemon/%v/", args[0])
+	data, err := getFromAPI(fullUrl)
+	if err != nil {
+		return err
+	}
+
+	if rand.Int()%150 >= int(data["base_experience"].(float64)) {
+		pokemon := Pokemon{
+			Height: int(data["height"].(float64)),
+			Weight: int(data["weight"].(float64)),
+			Types:  []string{},
+		}
+		for _, stat := range data["stats"].([]any) {
+			mapStat := stat.(map[string]any)
+			subStat := mapStat["stat"].(map[string]any)
+			switch subStat["name"].(string) {
+			case "hp":
+				pokemon.HP = int(mapStat["base_stat"].(float64))
+			case "attack":
+				pokemon.Attack = int(mapStat["base_stat"].(float64))
+			case "defense":
+				pokemon.Defense = int(mapStat["base_stat"].(float64))
+			case "special-attack":
+				pokemon.SpecialAttack = int(mapStat["base_stat"].(float64))
+			case "special-defense":
+				pokemon.SpecialDefence = int(mapStat["base_stat"].(float64))
+			case "speed":
+				pokemon.Speed = int(mapStat["base_stat"].(float64))
+			}
+		}
+		for _, typ := range data["types"].([]any) {
+			typeMap := typ.(map[string]any)
+			typeName := typeMap["type"].(map[string]any)["name"].(string)
+			pokemon.Types = append(pokemon.Types, typeName)
+		}
+		pokedex[args[0]] = pokemon
+		fmt.Printf("%v was caught!\n", args[0])
+	} else {
+		fmt.Printf("%v escaped!\n", args[0])
+	}
 	return nil
 }

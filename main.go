@@ -27,6 +27,11 @@ var cliCommands = map[string]CLICommand{
 		Description: "See a list of pokemon in selected area",
 		Callback:    commandExplore,
 	},
+	"catch": {
+		Name:        "catch",
+		Description: "Attempt to catch a pokemon",
+		Callback:    commandCatch,
+	},
 }
 
 var locationConfig = Config{
@@ -59,7 +64,7 @@ func main() {
 		if cliCommand, exists := cliCommands[command]; exists {
 			err := cliCommand.Callback(&locationConfig, cleanedInput[1:])
 			if err != nil {
-				fmt.Printf("ERROR: %v", err)
+				fmt.Printf("ERROR: %v\n", err)
 			}
 		} else {
 			fmt.Println("Unknown command")
