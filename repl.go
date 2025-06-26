@@ -25,6 +25,7 @@ type Config struct {
 }
 
 type Pokemon struct {
+	Name           string
 	Height         int
 	Weight         int
 	HP             int
@@ -171,6 +172,7 @@ func commandCatch(config *Config, args []string) error {
 
 	if rand.Int()%150 >= int(data["base_experience"].(float64)) {
 		pokemon := Pokemon{
+			Name:   args[0],
 			Height: int(data["height"].(float64)),
 			Weight: int(data["weight"].(float64)),
 			Types:  []string{},
@@ -202,6 +204,40 @@ func commandCatch(config *Config, args []string) error {
 		fmt.Printf("%v was caught!\n", args[0])
 	} else {
 		fmt.Printf("%v escaped!\n", args[0])
+	}
+	return nil
+}
+
+func commandInspect(config *Config, args []string) error {
+	if pokemon, exists := pokedex[args[0]]; exists {
+		fmt.Printf("Name: %v\n", pokemon.Name)
+		fmt.Printf("Height: %v\n", pokemon.Height)
+		fmt.Printf("Weight: %v\n", pokemon.Weight)
+		fmt.Printf("Stats:\n")
+		fmt.Printf("  -hp: %v\n", pokemon.HP)
+		fmt.Printf("  -attack: %v\n", pokemon.Attack)
+		fmt.Printf("  -defense: %v\n", pokemon.Defense)
+		fmt.Printf("  -special-attack: %v\n", pokemon.SpecialAttack)
+		fmt.Printf("  -special-defense: %v\n", pokemon.SpecialDefence)
+		fmt.Printf("  -speed: %v\n", pokemon.Speed)
+		fmt.Printf("Types:\n")
+		for _, typ := range pokemon.Types {
+			fmt.Printf("  -%v\n", typ)
+		}
+	} else {
+		fmt.Printf("you have not yet caught that pokemon")
+	}
+	return nil
+}
+
+func commandPokedex(config *Config, args []string) error {
+	if len(pokedex) == 0 {
+		fmt.Println("Your Pokedex is empty!")
+	} else {
+		fmt.Println("Your Pokedex:")
+	}
+	for pokemon := range pokedex {
+		fmt.Printf("  -%v\n", pokemon)
 	}
 	return nil
 }

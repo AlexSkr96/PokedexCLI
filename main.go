@@ -32,6 +32,16 @@ var cliCommands = map[string]CLICommand{
 		Description: "Attempt to catch a pokemon",
 		Callback:    commandCatch,
 	},
+	"inspect": {
+		Name:        "inspect",
+		Description: "Look up info on caught pokemon",
+		Callback:    commandInspect,
+	},
+	"pokedex": {
+		Name:        "pokedex",
+		Description: "Display a list of all caught pokemon",
+		Callback:    commandPokedex,
+	},
 }
 
 var locationConfig = Config{
